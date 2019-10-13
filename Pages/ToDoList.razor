@@ -1,0 +1,97 @@
+﻿@page "/todolist"
+
+@using BlazorApp.Data
+@using BlazorApp.Services
+@inject IToDoListService service
+@inject IJSRuntime jsRuntime
+
+<h1>To Do List</h1>
+
+<p>This component demonstrates fetching data from Database.</p>
+
+@if (toDoList == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Task</th>
+                <th>Status</th>
+                <th>Due Date</th>
+                <th>Edit</th>
+                <th>Delete</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var toDoItem in toDoList)
+            {
+            <tr>
+                <td>@toDoItem.Name</td>
+                <td>@toDoItem.Status</td>
+                <td>@toDoItem.DueDate.ToShortDateString()</td>
+                <td><input type="button" class="btn btn-primary" @onclick="(() => PrepareForEdit(toDoItem))" data-toggle="modal" data-target="#taskModal" value="Edit" /></td>
+                <td><input type="button" class="btn btn-danger" @onclick="(() => PrepareForDelete(toDoItem))" data-toggle="modal" data-target="#confirmDeleteModal" value="Delete" /></td>
+            </tr>
+            }
+        </tbody>
+    </table>
+}
+<div>
+    <input type="button" data-toggle="modal" data-target="#taskModal" class="btn btn-primary" value="Add Task" @onclick="(() => InitializeTaskObject())" />
+</div>
+
+<ConfirmDialog OnClick="@Delete" />
+<TaskDetail TaskObject=taskObject DataChanged="@DataChanged">
+    <CustomHeader>@customHeader</CustomHeader>
+</TaskDetail>
+
+@code {
+    List<ToDo> toDoList;
+    ToDo taskObject = new ToDo();
+    string customHeader = string.Empty;
+
+    private void InitializeTaskObject()
+    {
+        taskObject = new ToDo();
+        taskObject.DueDate = DateTime.Now;
+        customHeader = "Add New Task";
+    }
+
+    private void PrepareForEdit(ToDo task)
+    {
+        customHeader = "Edit Task";
+        taskObject = task;
+    }
+
+    private void PrepareForDelete(ToDo task)
+    {
+        taskObject = task;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        toDoList = await service.Get();
+    }
+
+    private async Task Delete()
+    {
+        var task = await service.Delete(taskObject.Id);
+        await jsRuntime.InvokeAsync<object>("CloseModal", "confirmDeleteModal");
+        toDoList = await service.Get();
+        taskObject = new ToDo();
+    }
+
+    //private async Task RefreshData()
+    //{
+    //    toDoList = await service.Get();
+    //}
+
+    private async void DataChanged()
+    {
+        toDoList = await service.Get();
+        StateHasChanged();
+    }
+}
