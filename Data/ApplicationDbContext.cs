@@ -11,6 +11,10 @@ namespace BlazorApp.Data
         }
         public DbSet<ToDo> ToDoList { get; set; }
 
+        public DbSet<Category> Categories { get; set; }
+
+        public DbSet<Product> Products { get; set; }
+
         public override int SaveChanges()
         {
             return base.SaveChanges();

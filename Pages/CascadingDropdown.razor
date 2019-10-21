@@ -1,0 +1,129 @@
+﻿@page "/cascadingdropdown"
+
+@using BlazorApp.Data
+@using BlazorApp.Services
+@inject ICascadingDropdownService service
+
+<h1>Cascading Dropdown</h1>
+
+<p>This component demonstrates Cascading dropdown</p>
+
+@if (categories == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <div class="col-6">
+        <EditForm Model="@OrderObject">
+            <DataAnnotationsValidator />
+            <div class="form-group">
+                <label for="category">Category</label>
+                <InputSelect id="category" class="form-control" @bind-Value="Category">
+                    <option value="">Select</option>
+                    @foreach (var category in categories)
+                    {
+                        <option value="@category.Id">
+                            @category.Name
+                        </option>
+                    }
+                </InputSelect>
+                <ValidationMessage For="@(() => OrderObject.CategoryId)" />
+            </div>
+
+            <div class="form-group">
+                <label for="product">Product</label>
+                <InputSelect id="product" class="form-control" @bind-Value="Product">
+                    <option value="">Select</option>
+                    @if (products != null)
+                    {
+                        @foreach (var product in products)
+                            {
+                            <option value="@product.Id">
+                                @product.Name
+                            </option>
+                            }
+                    }
+                </InputSelect>
+                <ValidationMessage For="@(() => OrderObject.ProductId)" />
+            </div>
+            @if (!string.IsNullOrEmpty(Product))
+            {
+                <div class="form-group">
+                    <label for="city">Ship City</label>
+                    <InputSelect id="Summary" class="form-control" @bind-Value="OrderObject.ShipCity">
+                        <option value="">Select</option>
+                        @foreach (var city in Cities)
+                        {
+                            <option value="@city">
+                                @city
+                            </option>
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => OrderObject.ShipCity)" />
+                </div>
+            }
+            <button type="submit" class="btn btn-primary">Submit</button>
+        </EditForm>
+    </div>
+}
+
+
+
+@code {
+    List<Category> categories;
+    List<Product> products;
+
+
+    [Parameter]
+    public Order OrderObject { get; set; }
+
+    List<string> Cities = new List<string>() { "Chennai", "Kolkata", "Mumbai", "New Delhi" };
+
+    protected override async Task OnInitializedAsync()
+    {
+        categories = await service.GetCategories();
+        OrderObject = new Order();
+    }
+
+    private string category;
+    public string Category
+    {
+        get => category;
+        set
+        {
+            category = OrderObject.CategoryId = value;
+            Product = default;
+            GetProducts();
+        }
+    }
+
+    void GetProducts()
+    {
+        products = null;
+        if (!string.IsNullOrEmpty(category))
+        {
+            var selectedCategory = Convert.ToInt16(category);
+            products = service.GetProducts(selectedCategory);
+        }
+    }
+
+    private string product;
+    public string Product
+    {
+        get => product;
+        set
+        {
+            product = OrderObject.ProductId = value;
+            Console.WriteLine(Product);
+            OrderObject.ShipCity = default;
+        }
+    }
+
+
+    private void HandleValidSubmit()
+    {
+        Console.WriteLine("OnValidSubmit");
+    }
+
+}
