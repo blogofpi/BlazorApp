@@ -1,0 +1,157 @@
+﻿@page "/todolistv2"
+
+@using BlazorApp.Data
+@using BlazorApp.Services
+
+@inject ApiService service
+@inject IJSRuntime jsRuntime
+
+<h1>To Do List</h1>
+
+<style>
+    .thead-light span {
+        cursor: pointer;
+    }
+
+    .thead-light i {
+        color: darkblue;
+        padding: 5px;
+    }
+</style>
+
+<p>This component demonstrates fetching data from Database.</p>
+
+@if (toDoList == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead class="thead-light">
+            <tr>
+                <th><span @onclick="@(() => Sort("Name"))">Task</span><i class="@(SortIndicator("Name"))"></i></th>
+                <th><span @onclick="@(() => Sort("Status"))">Status</span><i class="@(SortIndicator("Status"))"></i></th>
+                <th><span @onclick="@(() => Sort("DueDate"))">Due Date</span><i class="@(SortIndicator("DueDate"))"></i></th>
+                <th>Edit</th>
+                <th>Delete</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var toDoItem in toDoList)
+            {
+                <tr>
+                    <td>@toDoItem.Name</td>
+                    <td>@toDoItem.Status</td>
+                    <td>@toDoItem.DueDate.ToShortDateString()</td>
+                    <td><input type="button" class="btn btn-primary" @onclick="(() => PrepareForEdit(toDoItem))" data-toggle="modal" data-target="#taskModal" value="Edit" /></td>
+                    <td><input type="button" class="btn btn-danger" @onclick="(() => PrepareForDelete(toDoItem))" data-toggle="modal" data-target="#confirmDeleteModal" value="Delete" /></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+<div>
+    <Pager PageIndex=@paginatedList.PageIndex TotalPages=@paginatedList.TotalPages OnClick="PageIndexChanged"
+           HasNextPage=@paginatedList.HasNextPage HasPreviousPage=@paginatedList.HasPreviousPage>
+    </Pager>
+
+    <div class="float-right">
+        <input type="button" data-toggle="modal" data-target="#taskModal" class="btn btn-primary" value="Add Task" @onclick="(() => InitializeTaskObject())" />
+    </div>
+</div>
+
+<ConfirmDialog OnClick="@Delete" />
+<TaskDetailv2 TaskObject=taskObject DataChanged="@DataChanged">
+    <CustomHeader>@customHeader</CustomHeader>
+</TaskDetailv2>
+
+@code {
+    PaginatedList<ToDo> paginatedList = new PaginatedList<ToDo>();
+    IEnumerable<ToDo> toDoList;
+    ToDo taskObject = new ToDo();
+    string customHeader = string.Empty;
+
+
+    // Page and Sort data
+    int? pageNumber = 1;
+    string currentSortField = "Name";
+    string currentSortOrder = "Asc";
+
+    private void InitializeTaskObject()
+    {
+        taskObject = new ToDo();
+        taskObject.DueDate = DateTime.Now;
+        customHeader = "Add New Task";
+    }
+
+    private void PrepareForEdit(ToDo task)
+    {
+        customHeader = "Edit Task";
+        taskObject = task;
+    }
+
+    private async Task Sort(string sortField)
+    {
+        if (sortField.Equals(currentSortField))
+        {
+            currentSortOrder = currentSortOrder.Equals("Asc") ? "Desc" : "Asc";
+        }
+        else
+        {
+            currentSortField = sortField;
+            currentSortOrder = "Asc";
+        }
+        await GetData();
+    }
+
+    private string SortIndicator(string sortField)
+    {
+        if (sortField.Equals(currentSortField))
+        {
+            return currentSortOrder.Equals("Asc") ? "fa fa-sort-asc" : "fa fa-sort-desc";
+        }
+        return string.Empty;
+    }
+
+    private void PrepareForDelete(ToDo task)
+    {
+        taskObject = task;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await GetData();
+    }
+
+    private async Task GetData()
+    {
+        paginatedList = await service.GetPagedResult(pageNumber, currentSortField, currentSortOrder);
+        toDoList = paginatedList.Items;
+    }
+
+    private async Task Delete()
+    {
+        var task = await service.Delete(taskObject.Id);
+        await jsRuntime.InvokeAsync<object>("CloseModal", "confirmDeleteModal");
+        await GetData();
+        taskObject = new ToDo();
+    }
+
+    private async void DataChanged()
+    {
+        await GetData();
+        StateHasChanged();
+    }
+
+    public async void PageIndexChanged(int newPageNumber)
+    {
+        if (newPageNumber < 1 || newPageNumber > paginatedList.TotalPages)
+        {
+            return;
+        }
+        pageNumber = newPageNumber;
+        await GetData();
+        StateHasChanged();
+    }
+}

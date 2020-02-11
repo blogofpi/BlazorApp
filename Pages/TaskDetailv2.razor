@@ -1,0 +1,88 @@
+﻿@using BlazorApp.Data
+@using BlazorApp.Services
+
+@inject ApiService service
+@inject IJSRuntime jsRuntime
+
+
+<div class="modal" tabindex="-1" role="dialog" id="taskModal">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">@CustomHeader</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <EditForm Model="@TaskObject" OnValidSubmit="@HandleValidSubmit" Context="formContext">
+                    <DataAnnotationsValidator />
+                    <div class="form-group">
+                        <label for="taskName">Task Name</label>
+                        <input type="hidden" @bind-value="@TaskObject.Id" />
+                        <InputText id="name" class="form-control" @bind-Value="@TaskObject.Name" />
+                        <ValidationMessage For="@(() => TaskObject.Name)" />
+                    </div>
+                    <div class="form-group">
+                        <label for="status">Status</label>
+                        <InputSelect id="Summary" class="form-control"
+                                     @bind-Value="TaskObject.Status">
+                            <option value="">Select</option>
+                            @foreach (var status in TaskStatusList)
+                            {
+                                <option value="@status">
+                                    @status
+                                </option>
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="@(() => TaskObject.Status)" />
+                    </div>
+                    <div class="form-group">
+                        <label for="dueDate">Due Date</label>
+                        <input type="date" id="addition" name="math" @bind-value="@TaskObject.DueDate" />
+                        <ValidationMessage For="@(() => TaskObject.DueDate)" />
+                    </div>
+                    <button type="submit" class="btn btn-primary">Submit</button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+@code {
+    [Parameter]
+    public ToDo TaskObject { get; set; }
+
+    [Parameter]
+    public Action DataChanged { get; set; }
+
+    [Parameter]
+    public RenderFragment CustomHeader { get; set; }
+
+    List<string> TaskStatusList = new List<string>() { "New", "In Progress", "Completed" };
+
+    private async Task CloseTaskModal()
+    {
+        await jsRuntime.InvokeAsync<object>("CloseModal", "taskModal");
+    }
+
+
+    private async void HandleValidSubmit()
+    {
+        if (TaskObject.Id == 0)
+        {
+            await service.Add(TaskObject);
+        }
+        else
+        {
+            await service.Update(TaskObject);
+        }
+        await CloseTaskModal();
+        DataChanged?.Invoke();
+    }
+
+}
+
+

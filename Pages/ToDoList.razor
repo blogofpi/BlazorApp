@@ -84,11 +84,6 @@ else
         taskObject = new ToDo();
     }
 
-    //private async Task RefreshData()
-    //{
-    //    toDoList = await service.Get();
-    //}
-
     private async void DataChanged()
     {
         toDoList = await service.Get();
