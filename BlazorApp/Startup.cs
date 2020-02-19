@@ -32,7 +32,7 @@ namespace BlazorApp
                     Configuration.GetConnectionString("DefaultConnection")));
             services.AddHttpClient<ApiService>(client =>
             {
-                client.BaseAddress = new Uri("http://localhost");
+                client.BaseAddress = new Uri("https://localhost:5003");
             });
             services.AddDefaultIdentity<IdentityUser>()
                 .AddRoles<IdentityRole>()
